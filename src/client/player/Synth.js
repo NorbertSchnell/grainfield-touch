@@ -90,72 +90,65 @@ class Synth {
     }
 
     this.currentIndex = 0;
-    this.crossFadeDuration = 2;
     this.isPlaying = false;
     this.currentPosition = Math.random();
 
     this.setBuffer = this.setBuffer.bind(this);
-
-    this.resamplingValues = [0, 1200, 2400, 3600, 4800];
   }
 
   start() {
     this.isPlaying = true;
   }
 
-  stop(releaseTime = 0) {
+  stop(fadeTime = 2) {
     const engine = this.engines[this.currentIndex];
-    engine.fadeOut(releaseTime);
+    engine.fadeOut(fadeTime);
 
     this.isPlaying = false;
   }
 
-  setCrossFadeDuration(value) {
-    this.crossFadeDuration = value;
-  }
-
   // cross fade between currentEngine and next engine when new buffer
-  setBuffer(buffer) {
+  setBuffer(buffer, fadeTime = 2) {
     const prevIndex = this.currentIndex;
     this.currentIndex = (this.currentIndex + 1) % 2;
 
     const prevEngine = this.engines[prevIndex];
     const nextEngine = this.engines[this.currentIndex];
 
-    prevEngine.fadeOut(this.crossFadeDuration);
-
-    if (!this.scheduler.has(nextEngine))
-      this.scheduler.add(nextEngine);
+    prevEngine.fadeOut(fadeTime);
 
     nextEngine.buffer = buffer;
-    nextEngine.fadeIn(this.crossFadeDuration);
+    nextEngine.fadeIn(fadeTime);
+
+    if (!this.scheduler.has(nextEngine)) {
+      this.scheduler.add(nextEngine);
+      nextEngine.position = 0.5 * buffer.duration;
+    } else {
+      nextEngine.position = prevEngine.position;
+    }
   }
 
-  setCutoffFactor(factor) {
+  setCutoff(factor) {
     this.cutoff.frequency.value = this.minCutoffFreq * Math.exp(this.logCutoffRatio * factor);
   }
 
-  setPositionFactor(factor) {
+  setPosition(position) {
     const engine = this.engines[this.currentIndex];
     const buffer = engine.buffer;
 
-    if (buffer) {
-      const halfBufferDuration = 0.5 * buffer.duration;
-      const positionRange = halfBufferDuration - 0.5 * engine.durationAbs - engine.positionVar;
-
-      engine.position = halfBufferDuration + factor * positionRange;
-    }
+    if (buffer)
+      engine.position = position;
   }
 
   setResamplingVar(resamplingVar) {
     this.engines.forEach((engine) => engine.resamplingVar = resamplingVar);
   }
 
-  setPeriodAbs(value) {
+  setPeriod(value) {
     this.engines.forEach((engine) => engine.periodAbs = value);
   }
 
-  setDurationAbs(value) {
+  setDuration(value) {
     this.engines.forEach((engine) => engine.durationAbs = value);
   }
 

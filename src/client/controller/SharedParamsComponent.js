@@ -172,7 +172,7 @@ class SharedParamsComponent {
 
     for (let name in this.sharedParams.params) {
       const param = this.sharedParams.params[name];
-      const gui = this._createGui(param);
+      const gui = this.createGui(param);
 
       param.addListener('update', (val) => gui.set(val));
     }
@@ -191,7 +191,7 @@ class SharedParamsComponent {
     this._guiOptions[name] = options;
   }
 
-  _createGui(param) {
+  createGui(param) {
     const config = Object.assign({
       show: true,
       confirm: false,

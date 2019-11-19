@@ -22,8 +22,8 @@ class ControllerExperience extends Experience {
     this.setGuiOptions('record', { type: 'buttons' });
     this.setGuiOptions('gain', { type: 'slider', size: 'large' });
     // granular options
-    this.setGuiOptions('periodAbs', { type: 'slider', size: 'large' });
-    this.setGuiOptions('durationAbs', { type: 'slider', size: 'large' });
+    this.setGuiOptions('period', { type: 'slider', size: 'large' });
+    this.setGuiOptions('duration', { type: 'slider', size: 'large' });
     this.setGuiOptions('positionVar', { type: 'slider', size: 'large' });
     this.setGuiOptions('resamplingVar', { type: 'slider', size: 'large' });
     // levels

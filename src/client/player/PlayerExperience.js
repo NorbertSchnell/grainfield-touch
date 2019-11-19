@@ -4,63 +4,63 @@ import Renderer from './Renderer';
 import PitchAndRollEstimator from './PitchAndRollEstimator.js';
 
 const client = soundworks.client;
+const audioContext = soundworks.audioContext;
 
+const fadeTime = 2;
+const releaseTime = 8;
 
 function dBToLin(val) {
   return Math.exp(0.11512925464970229 * val); // pow(10, val / 20)
-};
-
-function linToDB(val) {
-  return 8.685889638065035 * Math.log(val); // 20 * log10(val)
-};
-
-// const colors = [
-//   'rgb(255, 112, 0)',
-//   'rgb(218, 32, 9)',
-//   'rgb(32, 1, 135)',
-// ];
+}
 
 const colors = [
-  '#dd0085', // 'pink'
-  '#ee0000', // 'red'
-  '#ff7700', // 'orange'
-  '#ffaa00', // 'yellow'
-  '#43af00', // 'green'
-  '#0062e2', // 'darkBlue'
-  '#009ed8', // 'lightBlue'
-  '#6b7884', // 'grey'
-  '#6700f7', // 'purple'
+  '#9e9e9e', // 'light grey'
+  '#b30000', // 'red'
+  '#b37800', // 'orange'
+  '#b3b000', // 'yellow'
+  '#3eb300', // 'green'
+  '#00b1b3', // 'turquoise'
+  '#024fb3', // 'blue'
+  '#4b00b3', // 'purple'
+  '#b300b3', // 'magenta'
+  '#595959', // 'dark grey'
 ];
 
 const template = `
-  <canvas class="background"></canvas>
-  <div class="foreground">
+  <canvas id="wind-cvs" class="wind-canvas background"></canvas>
+  <canvas id="wave-cvs-a" class="wave-canvas"></canvas>
+  <canvas id="wave-cvs-b" class="wave-canvas"></canvas>
+  <div id="foreground" class="foreground">
     <div class="section-top"></div>
     <div class="section-center flex-center">
       <p class="normal">
         <% if (state === 'wait') { %>
-          Connected,<br/>
+          <span class="title">Connected</span><br/>
           Please wait.
         <% } else if (state === 'starting') { %>
-          Starting sound...
+          <span class="title">Starting sound</span><br/>
+          Hold on...
         <% } else if (state === 'playing') { %>
-          Playing,<br/>
-          Move your device.
+          <span class="title">Playing</span><br/>
+          Move your finger on screen:<br/>
+          &#8596; srcub, &#8597; filter cutoff
         <% } else if (state === 'end') { %>
-          Thanks,<br/>
-          That's all!
+          <span class="title">Thanks,<br/>
+          that's all!</span>
         <% } %>
       </p>
     </div>
-    <div class="section-bottom"></div>
+    <div class="section-bottom">
+      <p class="normal">
+      </p>
+    </div>
   </div>
 `;
 
 class PlayerView extends soundworks.CanvasView {
   constructor(template, model, events, options) {
     super(template, model, events, options);
-
-    this.currentColorIndex = undefined;
+    this.playerRenderer = null;
   }
 
   setState(state) {
@@ -70,30 +70,42 @@ class PlayerView extends soundworks.CanvasView {
     }
   }
 
-  updateBackgroundColor() {
-    let newColorIndex = Math.floor(Math.random() * colors.length);
-
-    while (newColorIndex === this.currentColorIndex)
-      newColorIndex = Math.floor(Math.random() * colors.length);
-
-    const backgroundColor = colors[newColorIndex];
-
-    this.$el.style.backgroundColor = backgroundColor;
-    this.currentColorIndex = newColorIndex;
+  addRenderer(renderer) {
+    super.addRenderer(renderer);
+    this.playerRenderer = renderer;
   }
 
-  clearBackgroundColor(releaseTime) {
-    this.$el.style.transition = `background-color ${releaseTime}s`;
+  removeRenderer(renderer) {
+    super.removeRenderer(renderer);
+    super.playerRenderer = null;
+  }
+
+  onResize(viewportWidth, viewportHeight, orientation) {
+    super.onResize(viewportWidth, viewportHeight, orientation);
+
+    if (this.playerRenderer) {
+      this.playerRenderer.resize();
+    }
+  }
+
+  setBackgroundColor(index, fadeTime) {
+    const backgroundColor = colors[index % colors.length];
+
+    this.$el.style.transitionProperty = 'background-color';
+    this.$el.style.transitionDuration = `${2 * fadeTime}s`;
+    this.$el.style.backgroundColor = backgroundColor;
+  }
+
+  resetBackgroundColor(fadeTime) {
+    this.$el.style.transitionProperty = 'background-color';
+    this.$el.style.transitionDuration = `${2 * fadeTime}s`;
     this.$el.style.backgroundColor = 'transparent';
-    this.currentColorIndex = undefined;
   }
 }
 
 class PlayerExperience extends soundworks.Experience {
-  constructor(kind = 'player') {
+  constructor() {
     super();
-
-    this.kind = kind;
 
     this.platform = this.require('platform', { features: 'web-audio' });
     // this.require('locator');
@@ -105,16 +117,41 @@ class PlayerExperience extends soundworks.Experience {
       items: ['recordings'],
     });
 
-    this.motionInput = this.require('motion-input', {
-      descriptors: ['accelerationIncludingGravity'],
-    });
-
     this.sharedRecorder = this.require('shared-recorder', {
       recorder: false,
     });
 
-    this._processAccelerationData = this._processAccelerationData.bind(this);
-    this._onBuffer = this._onBuffer.bind(this);
+    this.bufferDuration = 2;
+    this.grainDuration = 0.1;
+    this.grainVar = 0.005;
+    this.margin = 0;
+
+    this.touchId = null;
+
+    this.onTouchStart = this.onTouchStart.bind(this);
+    this.onTouchMove = this.onTouchMove.bind(this);
+    this.onTouchEnd = this.onTouchEnd.bind(this);
+
+    this.onBuffer = this.onBuffer.bind(this);
+  }
+
+  updateWindow() {
+    const minPositionVar = 0.005; // see sharedParam positionVar server/index.js
+    const maxDuration = this.bufferDuration - 2 * minPositionVar;
+    const grainDuration = Math.min(maxDuration, this.grainDuration);
+    const maxPositionVar = 0.5 * (this.bufferDuration - grainDuration);
+    const positionVar = Math.min(maxPositionVar, this.grainVar);
+
+    this.synth.setDuration(grainDuration);
+    this.synth.setPositionVar(positionVar);
+
+    const windowDuration = grainDuration + 2 * positionVar;
+    const windowSize = windowDuration * audioContext.sampleRate;
+    this.renderer.setWindowSize(windowSize);
+
+    const margin = 0.5 * windowDuration;
+    this.minPosition = margin;
+    this.maxPosition = this.bufferDuration - margin;
   }
 
   start() {
@@ -125,40 +162,54 @@ class PlayerExperience extends soundworks.Experience {
 
     this.synth = new Synth();
     this.pitchAndRoll = new PitchAndRollEstimator();
-    this.view = new PlayerView(template, { state: 'none' });
-    this.renderer = new Renderer();
-
-    this.show();
-
-    // global synth parameters
-    this.sharedParams.addParamListener('periodAbs', (value) => {
-      this.synth.setPeriodAbs(value);
+    this.view = new PlayerView(template, { state: 'none' }, {}, {
+      ratios: {
+        '.section-top': 0.02,
+        '.section-center': 0.96,
+        '.section-bottom': 0.02,
+      }
     });
 
-    this.sharedParams.addParamListener('durationAbs', (value) => {
-      this.synth.setDurationAbs(value);
-    });
+    this.show().then(() => {
+      this.renderer = new Renderer();
 
-    this.sharedParams.addParamListener('positionVar', (value) => {
-      this.synth.setPositionVar(value);
-    });
+      const surface = new soundworks.TouchSurface(this.view.$el, { normalizeCoordinates: true });
+      surface.addListener('touchstart', this.onTouchStart);
+      surface.addListener('touchmove', this.onTouchMove);
+      surface.addListener('touchend', this.onTouchEnd);
 
-    this.sharedParams.addParamListener('resamplingVar', (value) => {
-      this.synth.setResamplingVar(value);
-    });
+      // global synth parameters
+      this.sharedParams.addParamListener('period', (value) => {
+        this.synth.setPeriod(value);
+      });
 
-    // gain for each group
-    this.sharedParams.addParamListener(`gain`, (value) => {
-      const gain = dBToLin(value);
-      this.synth.setGain(gain);
-    });
+      this.sharedParams.addParamListener('duration', (value) => {
+        this.grainDuration = value;
+        this.updateWindow();
+      });
 
-    // once * is initialized, update state of the application
-    this.sharedParams.addParamListener('state', (value) => {
-      this[`${value}State`]();
-    });
+      this.sharedParams.addParamListener('positionVar', (value) => {
+        this.grainVar = value;
+        this.updateWindow();
+      });
 
-    this.motionInput.addListener('accelerationIncludingGravity', this._processAccelerationData);
+      this.sharedParams.addParamListener('resamplingVar', (value) => {
+        this.synth.setResamplingVar(value);
+      });
+
+      // gain for each group
+      this.sharedParams.addParamListener(`gain`, (value) => {
+        const gain = dBToLin(value);
+        this.synth.setGain(gain);
+      });
+
+      // once * is initialized, update state of the application
+      this.sharedParams.addParamListener('state', (value) => {
+        this[`${value}State`]();
+      });
+
+      this.setTouch(0.5, 0.5);
+    });
   }
 
   waitState() {
@@ -166,54 +217,77 @@ class PlayerExperience extends soundworks.Experience {
   }
 
   startState() {
-    this.sharedRecorder.addListener('record', [this.phase], this._onBuffer);
-
+    this.sharedRecorder.addListener('record', [this.phase], this.onBuffer);
     this.view.setState('starting');
   }
 
   endState() {
     this.sharedRecorder.removeListener('record');
 
-    const releaseTime = 5 + Math.random() * 5;
     this.synth.stop(releaseTime);
+    this.renderer.resetWaveform(releaseTime);
+    this.view.resetBackgroundColor(releaseTime);
 
-    this.view.clearBackgroundColor(releaseTime);
-    this.view.removeRenderer(this.renderer);
+    const text = document.getElementById('foreground');
+    text.style.transitionProperty = 'opacity';
+    text.style.transitionDuration = `${releaseTime + 1}s`;
+    text.style.opacity = 0;
 
-    setTimeout(() => this.view.setState('end'), (releaseTime + 2) * 1000);
+    setTimeout(() => {
+      text.style.transitionProperty = 'opacity';
+      text.style.transitionDuration = '0s';
+      text.style.opacity = 1;
+
+      this.view.removeRenderer(this.renderer);
+      this.view.setState('end');
+    }, (releaseTime + 2) * 1000);
   }
 
-  _onBuffer(buffer, phase) {
-    this.synth.setBuffer(buffer);
+  onBuffer(buffer, phase) {
+    this.bufferDuration = buffer.duration;
+
+    this.synth.setBuffer(buffer, fadeTime);
+    this.renderer.setWaveform(buffer.getChannelData(0), fadeTime);
+
+    this.updateWindow();
 
     if (!this.synth.isPlaying) {
       this.synth.start();
       this.view.addRenderer(this.renderer);
+      this.view.setBackgroundColor(phase, fadeTime);
     }
 
     this.view.setState('playing');
-    this.view.updateBackgroundColor();
   }
 
-  _processAccelerationData(data) {
-    const accX = data[0];
-    const accY = data[1];
-    const accZ = data[2];
+  setTouch(x, y) {
+    const position = Math.max(this.minPosition, Math.min(this.maxPosition, x * this.bufferDuration));
+    const cutoff = Math.min(1, 1.5 - y);
 
-    const pitchAndRoll = this.pitchAndRoll;
-    pitchAndRoll.estimateFromAccelerationIncludingGravity(accX, accY, accZ);
+    this.renderer.setWindowPosition(position * audioContext.sampleRate, y);
+    this.renderer.setWindowOpacity(cutoff);
 
-    const cutoffFactor = 1 - Math.max(0, Math.min(90, pitchAndRoll.pitch)) / 90;
-
-    const maxRoll = 65;
-    let positionFactor = Math.max(-maxRoll, Math.min(maxRoll, pitchAndRoll.roll)) / maxRoll;
-
-    this.synth.setCutoffFactor(cutoffFactor);
-    this.synth.setPositionFactor(positionFactor);
-
-    this.renderer.setPosition(positionFactor);
+    this.synth.setPosition(position);
+    this.synth.setCutoff(cutoff);
   }
 
+  onTouchStart(id, x, y) {
+    if (this.touchId === null) {
+      this.touchId = id;
+      this.setTouch(x, y);
+    }
+  }
+
+  onTouchMove(id, x, y) {
+    if (id === this.touchId) {
+      this.setTouch(x, y);
+    }
+  }
+
+  onTouchEnd(id) {
+    if (id === this.touchId)
+      this.touchId = null;
+  }
 }
 
 export default PlayerExperience;

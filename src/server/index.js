@@ -29,7 +29,7 @@ config.recordings = {
     num: 10,
     cyclic: true,
   },
-}
+};
 
 // initialize the server with configuration informations
 soundworks.server.init(config);
@@ -55,9 +55,9 @@ sharedParams.addEnum('state', 'State', ['wait', 'start', 'end'], 'wait');
 sharedParams.addEnum('record', 'Record', ['record', 'stop'], 'stop');
 sharedParams.addNumber('gain', 'Volume', -60, 40, 1, 0);
 // granular engine params
-sharedParams.addNumber('periodAbs', 'Period', 0.02, 0.2, 0.001, 0.05);
-sharedParams.addNumber('durationAbs', 'Duration', 0.01, 0.5, 0.001, 0.2);
-sharedParams.addNumber('positionVar', 'Position Var', 0.01, 0.5, 0.001, 0.02);
+sharedParams.addNumber('period', 'Period', 0.02, 0.2, 0.001, 0.05);
+sharedParams.addNumber('duration', 'Duration', 0.01, 0.5, 0.001, 0.2);
+sharedParams.addNumber('positionVar', 'Position Var', 0.005, 0.5, 0.001, 0.005);
 sharedParams.addNumber('resamplingVar', 'Resampling Var', 0, 1200, 1, 0);
 
 // create the common server experience for both the soloists and the players

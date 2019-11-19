@@ -1,53 +1,17 @@
-#experience {
-  &.player {
-    transition: background-color 2s;
-  }
+span.title {
+  font-weight: bold;
+  font-size: 120%;
 }
 
-.soloist {
-  opacity: 0.8;
+.wind-canvas {
+  opacity: 0;
 }
 
-.soloist .section-center {
-  padding: 20px;
-  box-sizing: border-box;
-
-  .btn {
-    background-color: $backgroundColor;
-    border: 1px solid $textColor;
-    border-radius: $borderRadius;
-    color: $textColor;
-    padding: 6px 0;
-    display: block;
-    @include transition(background-color 50ms);
-    letter-spacing: 0.05em;
-
-    width: 100%;
-    font-size: 3rem;
-    height: 120px;
-    line-height: 120px;
-    margin-bottom: 20px;
-
-    &.active {
-      background-color: $textColor;
-      color: $backgroundColor;
-    }
-  }
-
-  #force-mute, #reset {
-    background-color: $alizarin;
-
-    &:active {
-      background-color: $textColor;
-      color: $backgroundColor;
-    }
-  }
-
-  label {
-    display: block;
-    font-size: 2rem;
-    margin: 40px 0;
-  }
+.wave-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  opacity: 0;
 }
 
 .basic-controllers {
