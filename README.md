@@ -2,11 +2,6 @@
 
 > Simplified version of the collective experiment created at the MusicTechFest in Berlin during the _Hack The Audience_ workshop (cf. [201605-musictechfest-grain-field](https://github.com/collective-soundworks-workshops/201605-musictechfest-grain-field))
 
-### Current project:
-
-- add waveform to client
-- add output for stereo or multichannel soundsystem in addition to mobiles
-
 ### To install the application (requires node.js and optionally git):
 
 - check out the repository using git or download and unzip the code
