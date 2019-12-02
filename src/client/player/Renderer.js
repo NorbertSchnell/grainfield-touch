@@ -42,8 +42,6 @@ class Renderer extends soundworks.Canvas2dRenderer {
 
     this.buffer = buffer;
 
-    console.log('set buffer: ', buffer);
-
     waveCvs.style.transitionProperty = 'opacity';
     waveCvs.style.transitionDuration = `${fadeTime + 1}s`;
     waveCvs.style.opacity = 0;
@@ -137,8 +135,6 @@ class Renderer extends soundworks.Canvas2dRenderer {
 
       ctx.save();
       ctx.clearRect(0, 0, width, height);
-
-      console.log('render window: ', waveform);
 
       const samplesPerPixel = waveform.length / width;
       const x = this.windowPosition / samplesPerPixel;
