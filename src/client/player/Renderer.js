@@ -4,7 +4,7 @@ class Renderer extends soundworks.Canvas2dRenderer {
   constructor() {
     super();
 
-    this.waveform = null;
+    this.buffer = null;
     this.windowPosition = 0.5;
     this.windowY = 0.5;
     this.windowSize = 0;
@@ -25,22 +25,24 @@ class Renderer extends soundworks.Canvas2dRenderer {
     this.windUpdate = false;
   }
 
-  setWaveform(waveform, fadeTime = 2) {
+  setBuffer(buffer, fadeTime = 2) {
     let index = 0 + this.waveToggle;
     let waveCvs = this.waveCvs[index];
     const windCvs = this.windCvs;
 
-    if (this.waveform === null) {
+    if (this.buffer === null) {
       windCvs.style.transitionProperty = 'opacity';
       windCvs.style.transitionDuration = `${fadeTime + 1}s`;
       windCvs.style.opacity = 1;
-    } else if (waveform === null) {
+    } else if (buffer === null) {
       windCvs.style.transitionProperty = 'opacity';
       windCvs.style.transitionDuration = `${fadeTime + 1}s`;
       windCvs.style.opacity = 0;
     }
 
-    this.waveform = waveform;
+    this.buffer = buffer;
+
+    console.log('set buffer: ', buffer);
 
     waveCvs.style.transitionProperty = 'opacity';
     waveCvs.style.transitionDuration = `${fadeTime + 1}s`;
@@ -57,8 +59,8 @@ class Renderer extends soundworks.Canvas2dRenderer {
     this.waveUpdate = true;
   }
 
-  resetWaveform(fadeTime = 2) {
-    this.setWaveform(null, fadeTime);
+  resetBuffer(fadeTime = 2) {
+    this.setBuffer(null, fadeTime);
   }
 
   setWindowSize(value) {
@@ -78,7 +80,7 @@ class Renderer extends soundworks.Canvas2dRenderer {
   }
 
   renderWaveform(ctx) {
-    const waveform = this.waveform;
+    const buffer = this.buffer;
     const width = this.canvasWidth;
     const height = this.canvasHeight;
 
@@ -87,7 +89,8 @@ class Renderer extends soundworks.Canvas2dRenderer {
     ctx.save();
     ctx.clearRect(0, 0, width, height);
 
-    if (waveform) {
+    if (buffer) {
+      const waveform = buffer.getChannelData(0);
       const samplesPerPixel = waveform.length / width;
       const center = 0.5 * height;
       const fullamp = 0.25 * height;
@@ -125,14 +128,17 @@ class Renderer extends soundworks.Canvas2dRenderer {
   }
 
   renderWindow(ctx) {
-    const waveform = this.waveform;
+    const buffer = this.buffer;
 
-    if (waveform) {
+    if (buffer) {
+      const waveform = buffer.getChannelData(0);
       const width = this.canvasWidth;
       const height = this.canvasHeight;
 
       ctx.save();
       ctx.clearRect(0, 0, width, height);
+
+      console.log('render window: ', waveform);
 
       const samplesPerPixel = waveform.length / width;
       const x = this.windowPosition / samplesPerPixel;
@@ -143,15 +149,16 @@ class Renderer extends soundworks.Canvas2dRenderer {
 
       this.windUpdate = false;
 
-      const gradient = ctx.createLinearGradient(x - halfWind, 0, x + halfWind, 0);
-      gradient.addColorStop(0, 'rgba(255, 255, 255, 0)');
-      gradient.addColorStop(0.25, 'rgba(255, 255, 255, 0.707)');
-      gradient.addColorStop(0.5, 'rgba(255, 255, 255, 1');
-      gradient.addColorStop(0.75, 'rgba(255, 255, 255, 0.707');
-      gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+      // const gradient = ctx.createLinearGradient(x - halfWind, 0, x + halfWind, 0);
+      // gradient.addColorStop(0, 'rgba(255, 255, 255, 0)');
+      // gradient.addColorStop(0.25, 'rgba(255, 255, 255, 0.707)');
+      // gradient.addColorStop(0.5, 'rgba(255, 255, 255, 1');
+      // gradient.addColorStop(0.75, 'rgba(255, 255, 255, 0.707');
+      // gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
 
-      ctx.fillStyle = gradient;
-      ctx.globalAlpha = 0.8 * opacity;
+      // ctx.fillStyle = gradient;
+      ctx.fillStyle = '#fff';
+      ctx.globalAlpha = 0.5 * opacity;
 
       ctx.fillRect(x - halfWind, 0, windWidth, height);
       ctx.restore();

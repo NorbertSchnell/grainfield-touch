@@ -225,7 +225,7 @@ class PlayerExperience extends soundworks.Experience {
     this.sharedRecorder.removeListener('record');
 
     this.synth.stop(releaseTime);
-    this.renderer.resetWaveform(releaseTime);
+    this.renderer.resetBuffer(releaseTime);
     this.view.resetBackgroundColor(releaseTime);
 
     const text = document.getElementById('foreground');
@@ -247,7 +247,7 @@ class PlayerExperience extends soundworks.Experience {
     this.bufferDuration = buffer.duration;
 
     this.synth.setBuffer(buffer, fadeTime);
-    this.renderer.setWaveform(buffer.getChannelData(0), fadeTime);
+    this.renderer.setBuffer(buffer, fadeTime);
 
     this.updateWindow();
 
