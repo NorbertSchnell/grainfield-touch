@@ -4,9 +4,7 @@ import ControllerExperience from './ControllerExperience';
 import serviceViews from '../shared/serviceViews';
 
 function bootstrap() {
-
   document.body.classList.remove('loading');
-
 
   const config = Object.assign({ appContainer: '#container' }, window.soundworksConfig);
   soundworks.client.init(config.clientType, config);

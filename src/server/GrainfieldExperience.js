@@ -3,7 +3,7 @@ import { exec } from 'child_process';
 import fse from 'fs-extra';
 
 export default class GrainfieldExperience extends Experience {
-  constructor(clientTypes, conductor) {
+  constructor(clientTypes) {
     super(clientTypes);
 
     this.sharedParams = this.require('shared-params');

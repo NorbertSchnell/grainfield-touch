@@ -1,7 +1,6 @@
 import path from 'path';
 const cwd = process.cwd();
 
-
 // Configuration of the application.
 // Other entries can be added (as long as their name doesn't conflict with
 // existing ones) to define global parameters of the application (e.g. BPM,

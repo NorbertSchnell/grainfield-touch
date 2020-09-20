@@ -156,11 +156,11 @@ class _TriggerGui {
 
 
 class SharedParamsComponent {
-  constructor(experience) {
+  constructor(experience, sharedParams) {
     this._guiOptions = {};
 
     this.experience = experience;
-    this.sharedParams = experience.sharedParams;
+    this.sharedParams = sharedParams;
   }
 
   enter() {

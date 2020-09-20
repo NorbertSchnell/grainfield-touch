@@ -11,23 +11,21 @@ class ControllerExperience extends Experience {
   constructor(options = {}) {
     super();
 
-    this.sharedParams = this.require('shared-params');
-    this.sharedParamsComponent = new SharedParamsComponent(this, this.sharedParams);
+    const sharedParams = this.require('shared-params');
+    const sharedParamsComponent = new SharedParamsComponent(this, sharedParams);
+
+    sharedParamsComponent.setGuiOptions('numPlayers', { readonly: true });
+    sharedParamsComponent.setGuiOptions('state', { type: 'buttons' });
+    sharedParamsComponent.setGuiOptions('record', { type: 'buttons' });
+    sharedParamsComponent.setGuiOptions('gain', { type: 'slider', size: 'large' });   
+    sharedParamsComponent.setGuiOptions('period', { type: 'slider', size: 'large' });
+    sharedParamsComponent.setGuiOptions('duration', { type: 'slider', size: 'large' });
+    sharedParamsComponent.setGuiOptions('positionVar', { type: 'slider', size: 'large' });
+    sharedParamsComponent.setGuiOptions('resamplingVar', { type: 'slider', size: 'large' });
+    sharedParamsComponent.setGuiOptions('outputGain', { type: 'slider', size: 'large' });
+
+    this.sharedParamsComponent = sharedParamsComponent;
     this.logComponent = new LogComponent(this);
-
-    this.setGuiOptions('numPlayers', { readonly: true });
-
-    this.setGuiOptions('state', { type: 'buttons' });
-
-    this.setGuiOptions('record', { type: 'buttons' });
-    this.setGuiOptions('gain', { type: 'slider', size: 'large' });
-    // granular options
-    this.setGuiOptions('period', { type: 'slider', size: 'large' });
-    this.setGuiOptions('duration', { type: 'slider', size: 'large' });
-    this.setGuiOptions('positionVar', { type: 'slider', size: 'large' });
-    this.setGuiOptions('resamplingVar', { type: 'slider', size: 'large' });
-    // levels
-    this.setGuiOptions('outputGain', { type: 'slider', size: 'large' });
 
     if (options.auth)
       this.auth = this.require('auth');
@@ -51,10 +49,6 @@ class ControllerExperience extends Experience {
       });
 
     });
-  }
-
-  setGuiOptions(name, options) {
-    this.sharedParamsComponent.setGuiOptions(name, options);
   }
 }
 
